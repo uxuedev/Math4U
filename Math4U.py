@@ -239,15 +239,15 @@ class Math4UApp(tk.Tk):
 
         for cat, cfg in CATEGORIAS.items():
             total        = len(cfg["subniveles"])
-            desbloqueado = min(self.progreso.get(cat, 0) + 1, total)
+            completados = self.progreso.get(cat, 0)
             row = tk.Frame(f, bg=C["bg"])
             row.pack(fill="x", pady=2)
             tk.Label(row, text=f"{cfg['icono']} {cat}",
                      font=("Courier New", 9), fg=C["text"], bg=C["bg"],
                      width=18, anchor="w").pack(side="left")
-            ttk.Progressbar(row, maximum=total, value=desbloqueado,
+            ttk.Progressbar(row, maximum=total, value=completados,
                             length=320).pack(side="left", padx=6)
-            tk.Label(row, text=f"{desbloqueado}/{total}",
+            tk.Label(row, text=f"{completados}/{total}",
                      font=("Courier New", 9), fg=C["muted"], bg=C["bg"]).pack(side="left")
 
     # ── SELECTOR DE CATEGORÍA ─────────────────────────────────────────────────
@@ -264,9 +264,9 @@ class Math4UApp(tk.Tk):
 
         for i, (cat, cfg) in enumerate(CATEGORIAS.items()):
             total        = len(cfg["subniveles"])
-            desbloqueado = min(self.progreso.get(cat, 0) + 1, total)
+            completados = self.progreso.get(cat, 0)
             tk.Button(grid,
-                      text=f"{cfg['icono']}\n{cat}\n{desbloqueado}/{total} sub-niveles",
+                      text=f"{cfg['icono']}\n{cat}\n{completados}/{total} sub-niveles",
                       font=("Courier New", 10, "bold"),
                       fg=C["text"], bg=C["card"],
                       activebackground=C["surface"],
@@ -290,10 +290,11 @@ class Math4UApp(tk.Tk):
         tk.Label(f, text=f"{cfg['icono']}  {categoria} – Elige un sub-nivel",
                  font=("Courier New", 13, "bold"), fg=C["text"], bg=C["bg"]).pack(pady=(0, 16))
 
-        desbloqueado_idx = self.progreso.get(categoria, 0)
+        completados_idx = self.progreso.get(categoria, 0)  # cuántos completados
 
         for i, sub in enumerate(cfg["subniveles"]):
-            bloqueado = i > desbloqueado_idx
+            # Sub-nivel disponible si es el primero, o si el anterior ya fue completado
+            bloqueado = i > completados_idx
             bg    = C["card"]    if not bloqueado else C["surface"]
             fg    = C["text"]    if not bloqueado else C["border"]
             sym   = f"  {i+1}. " if not bloqueado else "🔒 "
@@ -502,9 +503,10 @@ class Math4UApp(tk.Tk):
 
         if aprobado:
             idx_actual       = self.subnivel_actual
-            max_desbloq      = self.progreso.get(cat, 0)
+            completados      = self.progreso.get(cat, 0)
             total_subniveles = len(CATEGORIAS[cat]["subniveles"])
-            if idx_actual == max_desbloq and idx_actual + 1 < total_subniveles:
+            # Marcar como completado si aún no lo estaba
+            if idx_actual + 1 > completados:
                 self.progreso[cat] = idx_actual + 1
                 guardar_json(ARCHIVO_PROGRESO, self.progreso)
 
@@ -520,7 +522,8 @@ class Math4UApp(tk.Tk):
             tk.Label(f, text="⏱ Se agotó el tiempo", font=("Courier New", 10),
                      fg=C["danger"], bg=C["bg"]).pack()
 
-        if aprobado and self.subnivel_actual + 1 < len(CATEGORIAS[cat]["subniveles"]):
+        completados_ahora = self.progreso.get(cat, 0)
+        if aprobado and self.subnivel_actual + 1 < len(CATEGORIAS[cat]["subniveles"]) and completados_ahora == self.subnivel_actual + 1:
             siguiente = CATEGORIAS[cat]["subniveles"][self.subnivel_actual + 1]["nombre"]
             tk.Label(f, text=f"🔓 Desbloqueado: {siguiente}",
                      font=("Courier New", 9), fg=C["accent2"], bg=C["bg"]).pack(pady=(2, 0))
